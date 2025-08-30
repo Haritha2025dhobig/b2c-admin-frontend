@@ -96,7 +96,7 @@ export default function CommonTable<T extends Record<string, any>>({
                               />
                             ))}
                           </Stack>
-                        ) : col === "order_created_at" ? (
+                        ) : col === "order_created_at" || col === "pickup_date_time" ?  (
                           formatDate(value, true)
                         ) : typeof value === "boolean" ? (
                           onToggleActive ? (

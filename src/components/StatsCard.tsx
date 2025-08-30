@@ -8,7 +8,7 @@ export default function StatsCard({
   icon,
 }: {
   title: string;
-  value: string;
+  value: string | number;
   icon: ReactNode;
 }) {
   return (
@@ -17,7 +17,7 @@ export default function StatsCard({
         <div>
           <h3 className="text-sm text-gray-500">{title}</h3>
           <p className="text-xl font-bold">{value}</p>
-          <span className="text-xs text-gray-400">Compared to Oct 2023</span>
+          
         </div>
         {icon}
       </CardContent>

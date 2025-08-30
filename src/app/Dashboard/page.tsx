@@ -22,17 +22,11 @@ export default function DashboardPage() {
         </div>
 
         {/* Graph + Best Sellers */}
-        <div className="grid grid-cols-3 gap-4 p-4">
-          <div className="col-span-2">
-            <SalesGraph />
-          </div>
+        
           
-        </div>
+        
 
-        {/* Recent Orders */}
-        <div className="p-2">
-          <RecentOrdersTable />
-        </div>
+       
       </div>
     </div>
   );
