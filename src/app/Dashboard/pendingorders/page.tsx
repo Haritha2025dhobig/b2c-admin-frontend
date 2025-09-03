@@ -12,10 +12,24 @@ export default function PendingOrdersPage() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}pending-orders/`);
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          console.error("No token found in localStorage");
+          setOrders([]);
+          setLoading(false);
+          return;
+        }
+
+        const response = await axios.get(`${BASE_URL}pending-orders/`, {
+          headers: {
+            Authorization: `Bearer ${token}`, // ✅ attach token
+          },
+        });
+
         const data = Array.isArray(response.data)
           ? response.data
           : response.data.results || [];
+
         setOrders(data);
       } catch (error) {
         console.error("Error fetching pending orders:", error);

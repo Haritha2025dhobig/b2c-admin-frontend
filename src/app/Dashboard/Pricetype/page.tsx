@@ -26,6 +26,14 @@ export default function PriceTypePage() {
     price_type_name: "",
   });
 
+  // 🔑 Get token from localStorage (only on client side)
+  const getToken = () => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("access_token");
+    }
+    return null;
+  };
+
   const validate = () => {
     let tempErrors = { price_type_name: "" };
     let isValid = true;
@@ -41,7 +49,12 @@ export default function PriceTypePage() {
 
   const fetchPriceTypes = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}price-types/`);
+      const token = getToken();
+      const response = await axios.get(`${BASE_URL}price-types/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const data = Array.isArray(response.data)
         ? response.data
         : response.data.results || [];
@@ -61,7 +74,12 @@ export default function PriceTypePage() {
   const handleAddSubmit = async () => {
     if (!validate()) return;
     try {
-      await axios.post(`${BASE_URL}price-types/`, formData);
+      const token = getToken();
+      await axios.post(`${BASE_URL}price-types/`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setOpenAdd(false);
       setFormData({ price_type_name: "" });
       setErrors({ price_type_name: "" });
@@ -75,7 +93,16 @@ export default function PriceTypePage() {
     if (!selectedRow) return;
     if (!validate()) return;
     try {
-      await axios.patch(`${BASE_URL}price-types/${selectedRow.id}/`, formData);
+      const token = getToken();
+      await axios.patch(
+        `${BASE_URL}price-types/${selectedRow.id}/`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setOpenEdit(false);
       setErrors({ price_type_name: "" });
       fetchPriceTypes();
@@ -87,7 +114,12 @@ export default function PriceTypePage() {
   const handleDeleteSubmit = async () => {
     if (!selectedRow) return;
     try {
-      await axios.delete(`${BASE_URL}price-types/${selectedRow.id}/`);
+      const token = getToken();
+      await axios.delete(`${BASE_URL}price-types/${selectedRow.id}/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setOpenDelete(false);
       fetchPriceTypes();
     } catch (error) {
@@ -139,7 +171,9 @@ export default function PriceTypePage() {
           label="Price Type Name"
           name="price_type_name"
           value={formData.price_type_name}
-          onChange={(e) => setFormData({ ...formData, price_type_name: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, price_type_name: e.target.value })
+          }
           error={!!errors.price_type_name}
           helperText={errors.price_type_name}
           fullWidth
@@ -157,7 +191,9 @@ export default function PriceTypePage() {
           label="Price Type Name"
           name="price_type_name"
           value={formData.price_type_name}
-          onChange={(e) => setFormData({ ...formData, price_type_name: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, price_type_name: e.target.value })
+          }
           error={!!errors.price_type_name}
           helperText={errors.price_type_name}
           fullWidth

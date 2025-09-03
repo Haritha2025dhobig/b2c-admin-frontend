@@ -88,7 +88,7 @@ export default function CommonTable<T extends Record<string, any>>({
                             {value.map((sub: any, subIdx: number) => (
                               <Chip
                                 key={subIdx}
-                                label={sub.pending_suborder_code}
+                                label={sub.confirm_suborder_code || `SubOrder-${subIdx + 1}`}
                                 color="primary"
                                 size="small"
                                 clickable

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import CommonTable from "@/components/Table";
 import CustomDialog from "@/components/Dialog";
 import { TextField } from "@mui/material";
@@ -15,6 +15,7 @@ export default function ServicePeriodPage() {
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -56,12 +57,21 @@ export default function ServicePeriodPage() {
     return isValid;
   };
 
-  const fetchServices = async () => {
+  // ✅ Fetch Service Periods
+  const fetchServices = async (authToken: string | null) => {
+    if (!authToken) return;
+
     try {
-      const response = await axios.get(`${BASE_URL}service-periods/`);
+      const response = await axios.get(`${BASE_URL}service-periods/`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
       const data = Array.isArray(response.data)
         ? response.data
         : response.data.results || [];
+
       setServices(data);
     } catch (error) {
       console.error("Error fetching service periods:", error);
@@ -71,20 +81,27 @@ export default function ServicePeriodPage() {
     }
   };
 
-const didFetch = React.useRef(false);
+  // ✅ Only fetch once
+  const didFetch = useRef(false);
 
-useEffect(() => {
-  if (didFetch.current) return;
-  didFetch.current = true;
-  fetchServices();
-}, []);
+  useEffect(() => {
+    if (didFetch.current) return;
+    didFetch.current = true;
 
-  // Add Service Period
+    const storedToken = localStorage.getItem("access_token");
+    setToken(storedToken);
+    fetchServices(storedToken);
+  }, []);
+
+  // ✅ Add Service Period
   const handleAddSubmit = async () => {
-    if (!validate()) return;
+    if (!validate() || !token) return;
 
     try {
-      await axios.post(`${BASE_URL}service-periods/`, formData);
+      await axios.post(`${BASE_URL}service-periods/`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       setOpenAdd(false);
       setFormData({
         service_period_code: "",
@@ -96,38 +113,48 @@ useEffect(() => {
         service_period_name: "",
         service_period_description: "",
       });
-      fetchServices();
+      fetchServices(token);
     } catch (error) {
       console.error("Error adding service period:", error);
     }
   };
 
-  // Edit Service Period
+  // ✅ Edit Service Period
   const handleEditSubmit = async () => {
-    if (!selectedRow) return;
-    if (!validate()) return;
+    if (!selectedRow || !validate() || !token) return;
 
     try {
-      await axios.patch(`${BASE_URL}service-periods/${selectedRow.id}/`, formData);
+      await axios.patch(
+        `${BASE_URL}service-periods/${selectedRow.id}/`,
+        formData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
       setOpenEdit(false);
       setErrors({
         service_period_code: "",
         service_period_name: "",
         service_period_description: "",
       });
-      fetchServices();
+      fetchServices(token);
     } catch (error) {
       console.error("Error editing service period:", error);
     }
   };
 
-  // Delete Service Period
+  // ✅ Delete Service Period
   const handleDeleteSubmit = async () => {
-    if (!selectedRow) return;
+    if (!selectedRow || !token) return;
+
     try {
-      await axios.delete(`${BASE_URL}service-periods/${selectedRow.id}/`);
+      await axios.delete(`${BASE_URL}service-periods/${selectedRow.id}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       setOpenDelete(false);
-      fetchServices();
+      fetchServices(token);
     } catch (error) {
       console.error("Error deleting service period:", error);
     }
@@ -283,7 +310,7 @@ useEffect(() => {
         </div>
       </CustomDialog>
 
-      {/* ✅ Delete Confirmation using CustomDialog */}
+      {/* ✅ Delete Confirmation */}
       <CustomDialog
         open={openDelete}
         title="Confirm Delete"

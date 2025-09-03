@@ -12,6 +12,9 @@ import DashboardCustomizeIcon from "@mui/icons-material/DashboardCustomize";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
 import DepartureBoardIcon from '@mui/icons-material/DepartureBoard';
+import LocalLaundryServiceIcon from '@mui/icons-material/LocalLaundryService';
+
+
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -49,9 +52,9 @@ export default function Sidebar() {
           <LocationOnIcon fontSize="small" /> User-Address
         </Link>
 
-        <Link href="/Dashboard/ServiceperiodCode" className={linkClasses("/Dashboard/ServiceperiodCode")}>
+        {/* <Link href="/Dashboard/ServiceperiodCode" className={linkClasses("/Dashboard/ServiceperiodCode")}>
           <DashboardIcon fontSize="small" /> ServiceDeliveryCode
-        </Link>
+        </Link> */}
 
         <Link href="/Dashboard/pendingorders" className={linkClasses("/Dashboard/pendingorders")}>
           <PendingActionsIcon fontSize="small" /> Pending-orders
@@ -66,6 +69,9 @@ export default function Sidebar() {
         </Link>
         <Link href="/Dashboard/Pricetype" className={linkClasses("/Dashboard/Pricetype")}>
           <CurrencyRupeeIcon fontSize="small" /> Price Type
+        </Link>
+        <Link href="/Dashboard/Laundary" className={linkClasses("/Dashboard/Laundary")}>
+          <LocalLaundryServiceIcon fontSize="small" /> Laundary
         </Link>
       </nav>
     </aside>

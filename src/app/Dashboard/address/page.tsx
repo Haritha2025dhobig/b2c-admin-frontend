@@ -42,6 +42,16 @@ export default function AddressesPage() {
     pin_code: "",
   });
 
+  // ✅ Token state
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const savedToken = localStorage.getItem("token");
+    if (savedToken) {
+      setToken(savedToken);
+    }
+  }, []);
+
   // Validation
   const validate = () => {
     let tempErrors = { ...errors };
@@ -62,8 +72,11 @@ export default function AddressesPage() {
 
   // Fetch Addresses
   const fetchAddresses = async () => {
+    if (!token) return;
     try {
-      const response = await axios.get(`${BASE_URL}addresses/`);
+      const response = await axios.get(`${BASE_URL}addresses/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = Array.isArray(response.data)
         ? response.data
         : response.data.results || [];
@@ -81,14 +94,16 @@ export default function AddressesPage() {
     if (didFetch.current) return;
     didFetch.current = true;
     fetchAddresses();
-  }, []);
+  }, [token]);
 
   // Add Address
   const handleAddSubmit = async () => {
-    if (!validate()) return;
+    if (!validate() || !token) return;
 
     try {
-      await axios.post(`${BASE_URL}addresses/`, formData);
+      await axios.post(`${BASE_URL}addresses/`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setOpenAdd(false);
       setFormData({
         lat: "",
@@ -101,18 +116,17 @@ export default function AddressesPage() {
         country: "",
         pin_code: "",
       });
-     setErrors({
-  lat: "",
-  long: "",
-  house_no: "",
-  street: "",
-  area: "",
-  city: "",
-  state: "",
-  country: "",
-  pin_code: "",
-});
-
+      setErrors({
+        lat: "",
+        long: "",
+        house_no: "",
+        street: "",
+        area: "",
+        city: "",
+        state: "",
+        country: "",
+        pin_code: "",
+      });
       fetchAddresses();
     } catch (error) {
       console.error("Error adding address:", error);
@@ -121,23 +135,24 @@ export default function AddressesPage() {
 
   // Edit Address
   const handleEditSubmit = async () => {
-    if (!selectedRow) return;
-    if (!validate()) return;
+    if (!selectedRow || !validate() || !token) return;
 
     try {
-      await axios.patch(`${BASE_URL}addresses/${selectedRow.id}/`, formData);
+      await axios.patch(`${BASE_URL}addresses/${selectedRow.id}/`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setOpenEdit(false);
       setErrors({
-  lat: "",
-  long: "",
-  house_no: "",
-  street: "",
-  area: "",
-  city: "",
-  state: "",
-  country: "",
-  pin_code: "",
-});
+        lat: "",
+        long: "",
+        house_no: "",
+        street: "",
+        area: "",
+        city: "",
+        state: "",
+        country: "",
+        pin_code: "",
+      });
       fetchAddresses();
     } catch (error) {
       console.error("Error editing address:", error);
@@ -146,10 +161,12 @@ export default function AddressesPage() {
 
   // Delete Address
   const handleDeleteSubmit = async () => {
-    if (!selectedRow) return;
+    if (!selectedRow || !token) return;
 
     try {
-      await axios.delete(`${BASE_URL}addresses/${selectedRow.id}/`);
+      await axios.delete(`${BASE_URL}addresses/${selectedRow.id}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setOpenDelete(false);
       fetchAddresses();
     } catch (error) {

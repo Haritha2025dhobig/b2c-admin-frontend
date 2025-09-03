@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import CommonTable from "@/components/Table";
 import CustomDialog from "@/components/Dialog";
 import { TextField, FormControlLabel, Switch } from "@mui/material";
@@ -56,9 +56,11 @@ export default function ServicePincodePage() {
   };
 
   // Fetch list
-  const fetchPincodes = async () => {
+  const fetchPincodes = async (token: string | null) => {
     try {
-      const res = await axios.get(`${BASE_URL}service-pincodes/`);
+      const res = await axios.get(`${BASE_URL}service-pincode/`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
       const data = Array.isArray(res.data) ? res.data : res.data.results || [];
       setPincodes(data);
     } catch (err) {
@@ -69,22 +71,27 @@ export default function ServicePincodePage() {
     }
   };
 
-const didFetch = React.useRef(false);
+  const didFetch = useRef(false);
 
-useEffect(() => {
-  if (didFetch.current) return;
-  didFetch.current = true;
-  fetchPincodes();
-}, []);
+  useEffect(() => {
+    if (didFetch.current) return;
+    didFetch.current = true;
+
+    const token = localStorage.getItem("access_token");
+    fetchPincodes(token);
+  }, []);
 
   // Add
   const handleAddSubmit = async () => {
     if (!validate()) return;
     try {
-      await axios.post(`${BASE_URL}service-pincodes/`, formData);
+      const token = localStorage.getItem("access_token");
+      await axios.post(`${BASE_URL}service-pincode/`, formData, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
       setOpenAdd(false);
       setFormData({ pincode: "", city: "", zone: "", is_active: true });
-      fetchPincodes();
+      fetchPincodes(token);
     } catch (err) {
       console.error("Error adding pincode:", err);
     }
@@ -96,9 +103,12 @@ useEffect(() => {
     if (!validate()) return;
 
     try {
-      await axios.patch(`${BASE_URL}service-pincodes/${selectedRow.id}/`, formData);
+      const token = localStorage.getItem("access_token");
+      await axios.patch(`${BASE_URL}service-pincode/${selectedRow.id}/`, formData, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
       setOpenEdit(false);
-      fetchPincodes();
+      fetchPincodes(token);
     } catch (err) {
       console.error("Error editing pincode:", err);
     }
@@ -108,9 +118,12 @@ useEffect(() => {
   const handleDeleteSubmit = async () => {
     if (!selectedRow) return;
     try {
-      await axios.delete(`${BASE_URL}service-pincodes/${selectedRow.id}/`);
+      const token = localStorage.getItem("access_token");
+      await axios.delete(`${BASE_URL}service-pincode/${selectedRow.id}/`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
       setOpenDelete(false);
-      fetchPincodes();
+      fetchPincodes(token);
     } catch (err) {
       console.error("Error deleting pincode:", err);
     }
