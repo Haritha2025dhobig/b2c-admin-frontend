@@ -8,15 +8,24 @@ import axios from "axios";
 import { BASE_URL } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 
+// ✅ Define type
+export interface ServicePincode {
+  id: number;
+  pincode: string;
+  city: string;
+  zone: string;
+  is_active: boolean;
+}
+
 export default function ServicePincodePage() {
-  const [pincodes, setPincodes] = useState<any[]>([]);
+  const [pincodes, setPincodes] = useState<ServicePincode[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Dialog states
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
-  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [selectedRow, setSelectedRow] = useState<ServicePincode | null>(null);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -35,7 +44,7 @@ export default function ServicePincodePage() {
 
   // ✅ Validation
   const validate = () => {
-    let tempErrors = { pincode: "", city: "", zone: "" };
+    const tempErrors = { pincode: "", city: "", zone: "" };
     let valid = true;
 
     if (!formData.pincode) {
@@ -58,9 +67,11 @@ export default function ServicePincodePage() {
   // Fetch list
   const fetchPincodes = async (token: string | null) => {
     try {
-      const res = await axios.get(`${BASE_URL}service-pincode/`, {
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
-      });
+      const res = await axios.get<ServicePincode[] | { results: ServicePincode[] }>(
+        `${BASE_URL}service-pincode/`,
+        { headers: { Authorization: token ? `Bearer ${token}` : "" } }
+      );
+
       const data = Array.isArray(res.data) ? res.data : res.data.results || [];
       setPincodes(data);
     } catch (err) {

@@ -3,11 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    
+    "dev": "cross-env PORT=6239 next dev",
     "build": "next build --turbopack",
-    "start": "next start",
-    "lint": "eslint",
-    "dev": "PORT=6239 next dev"
+    "start": "next start"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -33,6 +31,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/recharts": "^1.8.29",
+    "cross-env": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.0",
     "tailwindcss": "^4",

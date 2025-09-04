@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import CommonTable from "@/components/Table";
 import CustomDialog from "@/components/Dialog";
 import { TextField } from "@mui/material";
@@ -8,15 +8,23 @@ import axios from "axios";
 import { BASE_URL } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 
+// ✅ Define Service type
+interface Service {
+  id: number;
+  service_code: string;
+  service_name: string;
+  service_description: string;
+}
+
 export default function ServicesPage() {
-  const [services, setServices] = useState<any[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
 
-  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [selectedRow, setSelectedRow] = useState<Service | null>(null);
 
   const [formData, setFormData] = useState({
     service_code: "",
@@ -24,7 +32,7 @@ export default function ServicesPage() {
     service_description: "",
   });
 
-  // ❌ Validation Errors
+  // ✅ Validation Errors
   const [errors, setErrors] = useState({
     service_code: "",
     service_name: "",
@@ -33,7 +41,7 @@ export default function ServicesPage() {
 
   // ✅ Validation function
   const validate = () => {
-    let tempErrors = { service_code: "", service_name: "", service_description: "" };
+    const tempErrors = { service_code: "", service_name: "", service_description: "" };
     let isValid = true;
 
     if (!formData.service_code) {
@@ -56,10 +64,14 @@ export default function ServicesPage() {
   // ✅ Fetch services
   const fetchServices = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}services/`);
+      const response = await axios.get<Service[] | { results: Service[] }>(
+        `${BASE_URL}services/`
+      );
+
       const data = Array.isArray(response.data)
         ? response.data
         : response.data.results || [];
+
       setServices(data);
     } catch (error) {
       console.error("Error fetching services:", error);
@@ -69,14 +81,13 @@ export default function ServicesPage() {
     }
   };
 
-const didFetch = React.useRef(false);
+  const didFetch = useRef(false);
 
-useEffect(() => {
-  if (didFetch.current) return;
-  didFetch.current = true;
-  fetchServices();
-}, []);
-
+  useEffect(() => {
+    if (didFetch.current) return;
+    didFetch.current = true;
+    fetchServices();
+  }, []);
 
   // ✅ Add Service
   const handleAddSubmit = async () => {
@@ -95,8 +106,7 @@ useEffect(() => {
 
   // ✅ Edit Service
   const handleEditSubmit = async () => {
-    if (!selectedRow) return;
-    if (!validate()) return;
+    if (!selectedRow || !validate()) return;
 
     try {
       await axios.patch(`${BASE_URL}services/${selectedRow.id}/`, formData);
@@ -143,7 +153,7 @@ useEffect(() => {
       {/* ✅ Table with Edit/Delete actions */}
       <CommonTable
         data={services}
-        onEdit={(row) => {
+        onEdit={(row: Service) => {
           setSelectedRow(row);
           setFormData({
             service_code: row.service_code,
@@ -153,7 +163,7 @@ useEffect(() => {
           setErrors({ service_code: "", service_name: "", service_description: "" });
           setOpenEdit(true);
         }}
-        onDelete={(row) => {
+        onDelete={(row: Service) => {
           setSelectedRow(row);
           setOpenDelete(true);
         }}
@@ -167,37 +177,7 @@ useEffect(() => {
         onSubmit={handleAddSubmit}
         submitText="Save Service"
       >
-        <div className="flex flex-col gap-4 mt-2">
-          <TextField
-            label="Service Code"
-            name="service_code"
-            value={formData.service_code}
-            onChange={(e) => setFormData({ ...formData, service_code: e.target.value })}
-            error={!!errors.service_code}
-            helperText={errors.service_code}
-            fullWidth
-          />
-          <TextField
-            label="Service Name"
-            name="service_name"
-            value={formData.service_name}
-            onChange={(e) => setFormData({ ...formData, service_name: e.target.value })}
-            error={!!errors.service_name}
-            helperText={errors.service_name}
-            fullWidth
-          />
-          <TextField
-            label="Service Description"
-            name="service_description"
-            value={formData.service_description}
-            onChange={(e) => setFormData({ ...formData, service_description: e.target.value })}
-            error={!!errors.service_description}
-            helperText={errors.service_description}
-            fullWidth
-            multiline
-            rows={3}
-          />
-        </div>
+        <ServiceForm formData={formData} errors={errors} setFormData={setFormData} />
       </CustomDialog>
 
       {/* ✅ Edit Dialog */}
@@ -208,40 +188,10 @@ useEffect(() => {
         onSubmit={handleEditSubmit}
         submitText="Update Service"
       >
-        <div className="flex flex-col gap-4 mt-2">
-          <TextField
-            label="Service Code"
-            name="service_code"
-            value={formData.service_code}
-            onChange={(e) => setFormData({ ...formData, service_code: e.target.value })}
-            error={!!errors.service_code}
-            helperText={errors.service_code}
-            fullWidth
-          />
-          <TextField
-            label="Service Name"
-            name="service_name"
-            value={formData.service_name}
-            onChange={(e) => setFormData({ ...formData, service_name: e.target.value })}
-            error={!!errors.service_name}
-            helperText={errors.service_name}
-            fullWidth
-          />
-          <TextField
-            label="Service Description"
-            name="service_description"
-            value={formData.service_description}
-            onChange={(e) => setFormData({ ...formData, service_description: e.target.value })}
-            error={!!errors.service_description}
-            helperText={errors.service_description}
-            fullWidth
-            multiline
-            rows={3}
-          />
-        </div>
+        <ServiceForm formData={formData} errors={errors} setFormData={setFormData} />
       </CustomDialog>
 
-      {/* ✅ Delete Confirmation using CustomDialog */}
+      {/* ✅ Delete Confirmation */}
       <CustomDialog
         open={openDelete}
         title="Confirm Delete"
@@ -252,6 +202,57 @@ useEffect(() => {
       >
         <p>Are you sure you want to delete this service?</p>
       </CustomDialog>
+    </div>
+  );
+}
+
+// ✅ Extract form fields to avoid duplication
+function ServiceForm({
+  formData,
+  errors,
+  setFormData,
+}: {
+  formData: { service_code: string; service_name: string; service_description: string };
+  errors: { service_code: string; service_name: string; service_description: string };
+  setFormData: React.Dispatch<
+    React.SetStateAction<{
+      service_code: string;
+      service_name: string;
+      service_description: string;
+    }>
+  >;
+}) {
+  return (
+    <div className="flex flex-col gap-4 mt-2">
+      <TextField
+        label="Service Code"
+        name="service_code"
+        value={formData.service_code}
+        onChange={(e) => setFormData({ ...formData, service_code: e.target.value })}
+        error={!!errors.service_code}
+        helperText={errors.service_code}
+        fullWidth
+      />
+      <TextField
+        label="Service Name"
+        name="service_name"
+        value={formData.service_name}
+        onChange={(e) => setFormData({ ...formData, service_name: e.target.value })}
+        error={!!errors.service_name}
+        helperText={errors.service_name}
+        fullWidth
+      />
+      <TextField
+        label="Service Description"
+        name="service_description"
+        value={formData.service_description}
+        onChange={(e) => setFormData({ ...formData, service_description: e.target.value })}
+        error={!!errors.service_description}
+        helperText={errors.service_description}
+        fullWidth
+        multiline
+        rows={3}
+      />
     </div>
   );
 }

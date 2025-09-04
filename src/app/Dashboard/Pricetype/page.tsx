@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import CommonTable from "@/components/Table";
 import CustomDialog from "@/components/Dialog";
 import { TextField } from "@mui/material";
@@ -8,15 +8,21 @@ import axios from "axios";
 import { BASE_URL } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 
+// ✅ Define proper type for PriceType
+export interface PriceType {
+  id: number;
+  price_type_name: string;
+}
+
 export default function PriceTypePage() {
-  const [priceTypes, setPriceTypes] = useState<any[]>([]);
+  const [priceTypes, setPriceTypes] = useState<PriceType[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
 
-  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [selectedRow, setSelectedRow] = useState<PriceType | null>(null);
 
   const [formData, setFormData] = useState({
     price_type_name: "",
@@ -26,7 +32,7 @@ export default function PriceTypePage() {
     price_type_name: "",
   });
 
-  // 🔑 Get token from localStorage (only on client side)
+  // 🔑 Get token from localStorage
   const getToken = () => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("access_token");
@@ -35,7 +41,7 @@ export default function PriceTypePage() {
   };
 
   const validate = () => {
-    let tempErrors = { price_type_name: "" };
+    const tempErrors = { price_type_name: "" }; // ✅ const instead of let
     let isValid = true;
 
     if (!formData.price_type_name) {
@@ -47,14 +53,18 @@ export default function PriceTypePage() {
     return isValid;
   };
 
-  const fetchPriceTypes = async () => {
+  // ✅ useCallback so we can safely use it in useEffect dependencies
+  const fetchPriceTypes = useCallback(async () => {
     try {
       const token = getToken();
-      const response = await axios.get(`${BASE_URL}price-types/`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.get<PriceType[] | { results: PriceType[] }>(
+        `${BASE_URL}price-types/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       const data = Array.isArray(response.data)
         ? response.data
         : response.data.results || [];
@@ -65,11 +75,11 @@ export default function PriceTypePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchPriceTypes();
-  }, []);
+  }, [fetchPriceTypes]);
 
   const handleAddSubmit = async () => {
     if (!validate()) return;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import CommonTable from "@/components/Table";
 import CustomDialog from "@/components/Dialog";
 import { TextField } from "@mui/material";
@@ -8,17 +8,33 @@ import axios from "axios";
 import { BASE_URL } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 
+// Types
+interface Address {
+  id: number;
+  lat: string;
+  long: string;
+  house_no: string;
+  street: string;
+  area: string;
+  city: string;
+  state: string;
+  country: string;
+  pin_code: string;
+}
+
+type FormData = Omit<Address, "id">;
+
 export default function AddressesPage() {
-  const [addresses, setAddresses] = useState<any[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
 
-  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [selectedRow, setSelectedRow] = useState<Address | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     lat: "",
     long: "",
     house_no: "",
@@ -30,7 +46,7 @@ export default function AddressesPage() {
     pin_code: "",
   });
 
-  const [errors, setErrors] = useState({
+  const [errors, setErrors] = useState<FormData>({
     lat: "",
     long: "",
     house_no: "",
@@ -42,7 +58,6 @@ export default function AddressesPage() {
     pin_code: "",
   });
 
-  // ✅ Token state
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,17 +67,17 @@ export default function AddressesPage() {
     }
   }, []);
 
-  // Validation
+  // ✅ Validation
   const validate = () => {
-    let tempErrors = { ...errors };
+    const tempErrors: FormData = { ...errors };
     let isValid = true;
 
-    Object.keys(formData).forEach((key) => {
-      if (!formData[key as keyof typeof formData]) {
-        tempErrors[key as keyof typeof tempErrors] = "Required";
+    (Object.keys(formData) as (keyof FormData)[]).forEach((key) => {
+      if (!formData[key]) {
+        tempErrors[key] = "Required";
         isValid = false;
       } else {
-        tempErrors[key as keyof typeof tempErrors] = "";
+        tempErrors[key] = "";
       }
     });
 
@@ -70,14 +85,14 @@ export default function AddressesPage() {
     return isValid;
   };
 
-  // Fetch Addresses
-  const fetchAddresses = async () => {
+  // ✅ Fetch Addresses
+  const fetchAddresses = useCallback(async () => {
     if (!token) return;
     try {
       const response = await axios.get(`${BASE_URL}addresses/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = Array.isArray(response.data)
+      const data: Address[] = Array.isArray(response.data)
         ? response.data
         : response.data.results || [];
       setAddresses(data);
@@ -87,16 +102,16 @@ export default function AddressesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
-  const didFetch = React.useRef(false);
+  const didFetch = useRef(false);
   useEffect(() => {
     if (didFetch.current) return;
     didFetch.current = true;
     fetchAddresses();
-  }, [token]);
+  }, [fetchAddresses]);
 
-  // Add Address
+  // ✅ Add Address
   const handleAddSubmit = async () => {
     if (!validate() || !token) return;
 
@@ -105,35 +120,14 @@ export default function AddressesPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setOpenAdd(false);
-      setFormData({
-        lat: "",
-        long: "",
-        house_no: "",
-        street: "",
-        area: "",
-        city: "",
-        state: "",
-        country: "",
-        pin_code: "",
-      });
-      setErrors({
-        lat: "",
-        long: "",
-        house_no: "",
-        street: "",
-        area: "",
-        city: "",
-        state: "",
-        country: "",
-        pin_code: "",
-      });
+      resetForm();
       fetchAddresses();
     } catch (error) {
       console.error("Error adding address:", error);
     }
   };
 
-  // Edit Address
+  // ✅ Edit Address
   const handleEditSubmit = async () => {
     if (!selectedRow || !validate() || !token) return;
 
@@ -142,24 +136,14 @@ export default function AddressesPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setOpenEdit(false);
-      setErrors({
-        lat: "",
-        long: "",
-        house_no: "",
-        street: "",
-        area: "",
-        city: "",
-        state: "",
-        country: "",
-        pin_code: "",
-      });
+      resetErrors();
       fetchAddresses();
     } catch (error) {
       console.error("Error editing address:", error);
     }
   };
 
-  // Delete Address
+  // ✅ Delete Address
   const handleDeleteSubmit = async () => {
     if (!selectedRow || !token) return;
 
@@ -174,6 +158,35 @@ export default function AddressesPage() {
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      lat: "",
+      long: "",
+      house_no: "",
+      street: "",
+      area: "",
+      city: "",
+      state: "",
+      country: "",
+      pin_code: "",
+    });
+    resetErrors();
+  };
+
+  const resetErrors = () => {
+    setErrors({
+      lat: "",
+      long: "",
+      house_no: "",
+      street: "",
+      area: "",
+      city: "",
+      state: "",
+      country: "",
+      pin_code: "",
+    });
+  };
+
   if (loading) return <p>Loading...</p>;
 
   return (
@@ -185,28 +198,7 @@ export default function AddressesPage() {
           className="bg-blue-600 hover:bg-blue-700 text-white"
           size="lg"
           onClick={() => {
-            setFormData({
-              lat: "",
-              long: "",
-              house_no: "",
-              street: "",
-              area: "",
-              city: "",
-              state: "",
-              country: "",
-              pin_code: "",
-            });
-            setErrors({
-              lat: "",
-              long: "",
-              house_no: "",
-              street: "",
-              area: "",
-              city: "",
-              state: "",
-              country: "",
-              pin_code: "",
-            });
+            resetForm();
             setOpenAdd(true);
           }}
         >
@@ -217,33 +209,13 @@ export default function AddressesPage() {
       {/* Table */}
       <CommonTable
         data={addresses}
-        onEdit={(row) => {
+        onEdit={(row: Address) => {
           setSelectedRow(row);
-          setFormData({
-            lat: row.lat,
-            long: row.long,
-            house_no: row.house_no,
-            street: row.street,
-            area: row.area,
-            city: row.city,
-            state: row.state,
-            country: row.country,
-            pin_code: row.pin_code,
-          });
-          setErrors({
-            lat: "",
-            long: "",
-            house_no: "",
-            street: "",
-            area: "",
-            city: "",
-            state: "",
-            country: "",
-            pin_code: "",
-          });
+          setFormData({ ...row });
+          resetErrors();
           setOpenEdit(true);
         }}
-        onDelete={(row) => {
+        onDelete={(row: Address) => {
           setSelectedRow(row);
           setOpenDelete(true);
         }}
@@ -258,16 +230,16 @@ export default function AddressesPage() {
         submitText="Save Address"
       >
         <div className="flex flex-col gap-4 mt-2">
-          {Object.keys(formData).map((key) => (
+          {(Object.keys(formData) as (keyof FormData)[]).map((key) => (
             <TextField
               key={key}
               label={key.replace("_", " ").toUpperCase()}
-              value={formData[key as keyof typeof formData]}
+              value={formData[key]}
               onChange={(e) =>
                 setFormData({ ...formData, [key]: e.target.value })
               }
-              error={!!errors[key as keyof typeof errors]}
-              helperText={errors[key as keyof typeof errors]}
+              error={!!errors[key]}
+              helperText={errors[key]}
               fullWidth
             />
           ))}
@@ -283,16 +255,16 @@ export default function AddressesPage() {
         submitText="Update Address"
       >
         <div className="flex flex-col gap-4 mt-2">
-          {Object.keys(formData).map((key) => (
+          {(Object.keys(formData) as (keyof FormData)[]).map((key) => (
             <TextField
               key={key}
               label={key.replace("_", " ").toUpperCase()}
-              value={formData[key as keyof typeof formData]}
+              value={formData[key]}
               onChange={(e) =>
                 setFormData({ ...formData, [key]: e.target.value })
               }
-              error={!!errors[key as keyof typeof errors]}
-              helperText={errors[key as keyof typeof errors]}
+              error={!!errors[key]}
+              helperText={errors[key]}
               fullWidth
             />
           ))}

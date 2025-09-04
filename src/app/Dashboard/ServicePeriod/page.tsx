@@ -8,13 +8,21 @@ import axios from "axios";
 import { BASE_URL } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 
+// ✅ Define type for ServicePeriod
+export interface ServicePeriod {
+  id: number;
+  service_period_code: string;
+  service_period_name: string;
+  service_period_description: string;
+}
+
 export default function ServicePeriodPage() {
-  const [services, setServices] = useState<any[]>([]);
+  const [services, setServices] = useState<ServicePeriod[]>([]);
   const [loading, setLoading] = useState(true);
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
-  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [selectedRow, setSelectedRow] = useState<ServicePeriod | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
   // Form data
@@ -33,11 +41,11 @@ export default function ServicePeriodPage() {
 
   // ✅ Validation function
   const validate = () => {
-    let tempErrors = {
+    const tempErrors = {
       service_period_code: "",
       service_period_name: "",
       service_period_description: "",
-    };
+    }; // ✅ const instead of let
     let isValid = true;
 
     if (!formData.service_period_code) {
@@ -62,11 +70,12 @@ export default function ServicePeriodPage() {
     if (!authToken) return;
 
     try {
-      const response = await axios.get(`${BASE_URL}service-periods/`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
+      const response = await axios.get<ServicePeriod[] | { results: ServicePeriod[] }>(
+        `${BASE_URL}service-periods/`,
+        {
+          headers: { Authorization: `Bearer ${authToken}` },
+        }
+      );
 
       const data = Array.isArray(response.data)
         ? response.data

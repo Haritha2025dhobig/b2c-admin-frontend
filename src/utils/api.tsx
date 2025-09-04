@@ -1,39 +1,49 @@
 import axios from "axios";
 
-export const BASE_URL = "http://localhost:8000/"
+export const BASE_URL = "https://dgb2cbackend-production.up.railway.app/";
 
 const API = axios.create({
-  baseURL: "http://localhost:8000/", // change to your backend URL
-  // headers: {
-  //   "Content-Type": "application/json",
-  // },
+  baseURL: BASE_URL,
 });
 
-// Correct type: (msg: string) => void
+// ✅ Utility to extract error message safely
+const getErrorMessage = (error: unknown): string => {
+  if (axios.isAxiosError(error)) {
+    return (
+      error.response?.data?.message ||
+      error.message ||
+      "Unexpected error occurred"
+    );
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return "Unknown error";
+};
+
+// -------------------- OTP --------------------
+
 export const sendOtpRequest = async (
   mobile_number: string,
   setShowRequestError: (msg: string) => void
 ): Promise<boolean> => {
   try {
-    const response = await axios.post(
-      "https://sso.dhobig.com/api/sso/login/send-otp/",
-      { mobile_number }
-    );
+    const response = await axios.post("https://sso.dhobig.com/api/sso/login/send-otp/", { mobile_number });
     console.log("OTP request response:", response.data);
+
     if (response.status === 200) {
       return true;
     } else {
       setShowRequestError(response.data.message || "OTP request failed");
       return false;
     }
-  } catch (error: any) {
-    console.log("Error sending OTP:", error);
-    setShowRequestError(error.message || "Network error");
+  } catch (error: unknown) {
+    const msg = getErrorMessage(error);
+    console.error("Error sending OTP:", msg);
+    setShowRequestError(msg);
     return false;
   }
 };
-
-
 
 export const verifyOtpRequest = async (
   mobile_number: string,
@@ -41,14 +51,12 @@ export const verifyOtpRequest = async (
   setShowError: (msg: string) => void
 ): Promise<boolean> => {
   try {
-    const response = await axios.post(
-      "https://sso.dhobig.com/api/sso/login/verify-otp/",
-      {
-        mobile_number,
-        otp,
-      }
-    );
+    const response = await axios.post("https://sso.dhobig.com/api/sso/login/verify-otp/", {
+      mobile_number,
+      otp,
+    });
     console.log("OTP verification response:", response.data);
+
     if (response.status === 200) {
       localStorage.setItem("access_token", response.data.tokens.access);
       localStorage.setItem("refresh_token", response.data.tokens.refresh);
@@ -57,15 +65,23 @@ export const verifyOtpRequest = async (
       setShowError(response.data.message || "OTP verification failed");
       return false;
     }
-  } catch (error: any) {
-    const errorMsg = error.response?.data?.error?.[0] || "Verification failed";
-    console.log("Error verifying OTP:", errorMsg);
+  } catch (error: unknown) {
+    let errorMsg = "Verification failed";
+
+    if (axios.isAxiosError(error)) {
+      errorMsg =
+        (error.response?.data as { error?: string[] })?.error?.[0] ||
+        error.message ||
+        errorMsg;
+    }
+
+    console.error("Error verifying OTP:", errorMsg);
     setShowError(errorMsg);
     return false;
   }
 };
 
-
+// -------------------- Laundry APIs --------------------
 
 export const fetchLaundries = async (token: string) => {
   try {
@@ -74,13 +90,16 @@ export const fetchLaundries = async (token: string) => {
     });
     console.log("Request headers:", response.config.headers);
     return response.data;
-  } catch (error: any) {
-    console.error("Error fetching laundries:", error);
-    throw error.response?.data || { message: "Failed to fetch laundries" };
+  } catch (error: unknown) {
+    const msg = getErrorMessage(error);
+    console.error("Error fetching laundries:", msg);
+
+    if (axios.isAxiosError(error)) {
+      throw error.response?.data || { message: msg };
+    }
+    throw { message: msg };
   }
 };
-
-
 
 type LaundryPayload = {
   name: string;
@@ -91,15 +110,23 @@ type LaundryPayload = {
   long?: string;
 };
 
-export const createLaundry = async (laundryData: LaundryPayload, token: string) => {
+export const createLaundry = async (
+  laundryData: LaundryPayload,
+  token: string
+) => {
   try {
     const response = await API.post("/laundary/", laundryData, {
       headers: { Authorization: `Bearer ${token}` },
     });
     console.log("Laundry created:", response.data);
     return response.data;
-  } catch (error: any) {
-    console.error("Error creating laundry:", error);
-    throw error.response?.data || { message: "Failed to create laundry" };
+  } catch (error: unknown) {
+    const msg = getErrorMessage(error);
+    console.error("Error creating laundry:", msg);
+
+    if (axios.isAxiosError(error)) {
+      throw error.response?.data || { message: msg };
+    }
+    throw { message: msg };
   }
 };

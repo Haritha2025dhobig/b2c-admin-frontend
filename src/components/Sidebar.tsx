@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import DashboardIcon from "@mui/icons-material/Dashboard";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LocationOnIcon from "@mui/icons-material/LocationOn";

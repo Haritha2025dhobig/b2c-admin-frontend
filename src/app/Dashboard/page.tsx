@@ -54,13 +54,13 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { BASE_URL } from "@/utils/api";
-import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/Navbar";
+// import Sidebar from "@/components/Sidebar";
+// import Navbar from "@/components/Navbar";
 import StatsCard from "@/components/StatsCard";
 import RecentOrdersTable from "@/components/RecentOrdersTable";
 import SalesGraph from "@/components/SalesGraph";
 import { Package, CheckCircle, ShoppingCart } from "lucide-react";
-import {useRouter} from "next/navigation"
+// import { useRouter } from "next/navigation";
 
 interface DashboardStats {
   total_orders: number;
@@ -69,13 +69,25 @@ interface DashboardStats {
   processing_orders: number;
 }
 
+interface OrderApiResponse {
+  id?: string | number;
+  order_created_at?: string;
+  name?: string;
+  order_status?: string | { id: number; status: string };
+  total_amount?: string | number | null;
+}
+
 interface Order {
   id: string;
   date: string;
   customer: string;
-  status: string;
-  amount: string;
-  full_address?: string;
+  order_status: { status: string } | { id: number; status: string };
+  total_amount: number;
+}
+
+interface SalesApiResponse {
+  day: string;
+  total: number;
 }
 
 interface SalesData {
@@ -95,13 +107,11 @@ export default function DashboardPage() {
   const [salesData, setSalesData] = useState<SalesData[]>([]);
   const [salesFilter, setSalesFilter] = useState<"weekly" | "monthly" | "yearly">("monthly");
 
-
-
   // Fetch stats
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}dashboard/stats/`);
+        const response = await axios.get<DashboardStats>(`${BASE_URL}dashboard/stats/`);
         setStats(response.data);
       } catch (error) {
         console.error("Error fetching stats:", error);
@@ -110,21 +120,20 @@ export default function DashboardPage() {
 
     const fetchRecentOrders = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}dashboard/recent-orders/`);
-        
+        const response = await axios.get<OrderApiResponse[]>(`${BASE_URL}dashboard/recent-orders/`);
 
-        const mappedOrders: Order[] = response.data.map((o: any) => ({
-          id: o.id || "N/A",
+        const mappedOrders: Order[] = response.data.map((o) => ({
+          id: String(o.id ?? "N/A"),
           date: o.order_created_at
             ? new Date(o.order_created_at).toLocaleDateString()
             : "N/A",
-          customer: o.name || "N/A",
+          customer: o.name ?? "N/A",
           order_status: o.order_status
             ? typeof o.order_status === "string"
               ? { status: o.order_status }
-              : o.order_status 
-            : { status: "Pending" }, 
-            total_amount: o.total_amount != null ? Number(o.total_amount) : 0,
+              : o.order_status
+            : { status: "Pending" },
+          total_amount: o.total_amount != null ? Number(o.total_amount) : 0,
         }));
         setRecentOrders(mappedOrders);
       } catch (error) {
@@ -140,12 +149,15 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchSalesData = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}dashboard/sales-graph/`, {
-          params: { filter: salesFilter }, // API should accept ?filter=weekly/monthly/yearly
+        const response = await axios.get<SalesApiResponse[]>(`${BASE_URL}dashboard/sales-graph/`, {
+          params: { filter: salesFilter },
         });
 
-        const formattedData = response.data.map((item: any) => ({
-          day: new Date(item.day).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        const formattedData: SalesData[] = response.data.map((item) => ({
+          day: new Date(item.day).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          }),
           total: item.total,
         }));
 

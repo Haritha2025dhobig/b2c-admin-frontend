@@ -8,15 +8,21 @@ import axios from "axios";
 import { BASE_URL } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 
+export interface Pickup {
+  id: number;
+  pickup_code: string;
+  pickup_name: string;
+}
+
 export default function PickupPage() {
-  const [pickups, setPickups] = useState<any[]>([]);
+  const [pickups, setPickups] = useState<Pickup[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
 
-  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [selectedRow, setSelectedRow] = useState<Pickup | null>(null);
 
   const [formData, setFormData] = useState({
     pickup_code: "",
@@ -29,7 +35,7 @@ export default function PickupPage() {
   });
 
   const validate = () => {
-    let tempErrors = { pickup_code: "", pickup_name: "" };
+    const tempErrors = { pickup_code: "", pickup_name: "" }; // ✅ use const
     let isValid = true;
 
     if (!formData.pickup_code) {
@@ -47,7 +53,9 @@ export default function PickupPage() {
 
   const fetchPickups = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}pickups/`);
+      const response = await axios.get<Pickup[] | { results: Pickup[] }>(
+        `${BASE_URL}pickups/`
+      );
       const data = Array.isArray(response.data)
         ? response.data
         : response.data.results || [];
@@ -60,13 +68,13 @@ export default function PickupPage() {
     }
   };
 
-const didFetch = React.useRef(false);
+  const didFetch = React.useRef(false);
 
-useEffect(() => {
-  if (didFetch.current) return;
-  didFetch.current = true;
-  fetchPickups();
-}, []);
+  useEffect(() => {
+    if (didFetch.current) return;
+    didFetch.current = true;
+    fetchPickups();
+  }, []);
 
   const handleAddSubmit = async () => {
     if (!validate()) return;
@@ -126,18 +134,22 @@ useEffect(() => {
 
       <CommonTable
         data={pickups}
-        onEdit={(row) => {
+        onEdit={(row: Pickup) => {
           setSelectedRow(row);
-          setFormData({ pickup_code: row.pickup_code, pickup_name: row.pickup_name });
+          setFormData({
+            pickup_code: row.pickup_code,
+            pickup_name: row.pickup_name,
+          });
           setErrors({ pickup_code: "", pickup_name: "" });
           setOpenEdit(true);
         }}
-        onDelete={(row) => {
+        onDelete={(row: Pickup) => {
           setSelectedRow(row);
           setOpenDelete(true);
         }}
       />
 
+      {/* Add Dialog */}
       <CustomDialog
         open={openAdd}
         title="Add New Pickup"
@@ -150,7 +162,9 @@ useEffect(() => {
             label="Pickup Code"
             name="pickup_code"
             value={formData.pickup_code}
-            onChange={(e) => setFormData({ ...formData, pickup_code: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, pickup_code: e.target.value })
+            }
             error={!!errors.pickup_code}
             helperText={errors.pickup_code}
             fullWidth
@@ -159,7 +173,9 @@ useEffect(() => {
             label="Pickup Name"
             name="pickup_name"
             value={formData.pickup_name}
-            onChange={(e) => setFormData({ ...formData, pickup_name: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, pickup_name: e.target.value })
+            }
             error={!!errors.pickup_name}
             helperText={errors.pickup_name}
             fullWidth
@@ -167,6 +183,7 @@ useEffect(() => {
         </div>
       </CustomDialog>
 
+      {/* Edit Dialog */}
       <CustomDialog
         open={openEdit}
         title="Edit Pickup"
@@ -179,7 +196,9 @@ useEffect(() => {
             label="Pickup Code"
             name="pickup_code"
             value={formData.pickup_code}
-            onChange={(e) => setFormData({ ...formData, pickup_code: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, pickup_code: e.target.value })
+            }
             error={!!errors.pickup_code}
             helperText={errors.pickup_code}
             fullWidth
@@ -188,7 +207,9 @@ useEffect(() => {
             label="Pickup Name"
             name="pickup_name"
             value={formData.pickup_name}
-            onChange={(e) => setFormData({ ...formData, pickup_name: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, pickup_name: e.target.value })
+            }
             error={!!errors.pickup_name}
             helperText={errors.pickup_name}
             fullWidth
@@ -196,6 +217,7 @@ useEffect(() => {
         </div>
       </CustomDialog>
 
+      {/* Delete Dialog */}
       <CustomDialog
         open={openDelete}
         title="Confirm Delete"

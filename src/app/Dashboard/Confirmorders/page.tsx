@@ -1,13 +1,32 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import CommonTable from "@/components/Table";
-import CustomDialog from "@/components/Dialog";
-import { TextField, MenuItem } from "@mui/material";
 import { BASE_URL } from "@/utils/api";
 import axios from "axios";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  MenuItem,
+} from "@mui/material";
 
 type Status = { id: number; status: string };
+
+export type Order = {
+  id: number;
+  customer_name: string;
+  total_amount: number;
+  payment_status: string;
+  order_status: number | Status | string | null;
+  pickup_date_time: string;
+  order_created_at: string;
+  name?: string;
+  order_status_display?: string | { id: number; status: string };
+};
 
 type FormDataType = {
   customer_name: string;
@@ -19,14 +38,14 @@ type FormDataType = {
 };
 
 export default function ConfirmOrdersPage() {
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
 
-  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [selectedRow, setSelectedRow] = useState<Order | null>(null);
 
   const [formData, setFormData] = useState<FormDataType>({
     customer_name: "",
@@ -41,13 +60,12 @@ export default function ConfirmOrdersPage() {
   const [statuses, setStatuses] = useState<Status[]>([]);
 
   // --- Helpers ---------------------------------------------------------------
-
   const getAuthHeaders = () => {
     const token = localStorage.getItem("access_token");
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  const mapOrderStatusToId = (row: any, list: Status[]): number | "" => {
+  const mapOrderStatusToId = (row: Order, list: Status[]): number | "" => {
     const raw = row?.order_status ?? row?.order_status_display;
     if (typeof raw === "number" && Number.isFinite(raw)) return raw;
     if (raw && typeof raw === "object" && "id" in raw && Number.isFinite(raw.id)) {
@@ -79,13 +97,12 @@ export default function ConfirmOrdersPage() {
     });
 
   // --- Data fetching ---------------------------------------------------------
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       const response = await axios.get(`${BASE_URL}confirmorder/`, {
         headers: getAuthHeaders(),
       });
-      const data = Array.isArray(response.data)
+      const data: Order[] = Array.isArray(response.data)
         ? response.data
         : response.data?.results || [];
       setOrders(data);
@@ -95,9 +112,9 @@ export default function ConfirmOrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchStatuses = async () => {
+  const fetchStatuses = useCallback(async () => {
     try {
       const response = await axios.get(`${BASE_URL}order-statuses/`, {
         headers: getAuthHeaders(),
@@ -107,15 +124,14 @@ export default function ConfirmOrdersPage() {
       console.error("Error fetching order statuses:", error);
       setStatuses([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchOrders();
     fetchStatuses();
-  }, []);
+  }, [fetchOrders, fetchStatuses]);
 
   // --- Validation ------------------------------------------------------------
-
   const validateForm = () => {
     const temp: Record<string, string> = {};
     if (!formData.customer_name) temp.customer_name = "Customer name is required";
@@ -133,7 +149,6 @@ export default function ConfirmOrdersPage() {
   };
 
   // --- CRUD handlers ---------------------------------------------------------
-
   const handleAddSubmit = async () => {
     if (!validateForm()) return;
     try {
@@ -180,7 +195,7 @@ export default function ConfirmOrdersPage() {
   const handleDeleteSubmit = async () => {
     if (!selectedRow) return;
     try {
-      await axios.delete(`${BASE_URL}confirmorder//${selectedRow.id}/`, {
+      await axios.delete(`${BASE_URL}confirmorder/${selectedRow.id}/`, {
         headers: getAuthHeaders(),
       });
       setOpenDelete(false);
@@ -193,7 +208,6 @@ export default function ConfirmOrdersPage() {
   if (loading) return <p>Loading...</p>;
 
   // --- Render ----------------------------------------------------------------
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -213,7 +227,7 @@ export default function ConfirmOrdersPage() {
       {/* Orders Table */}
       <CommonTable
         data={orders}
-        onEdit={(row) => {
+        onEdit={(row: Order) => {
           setSelectedRow(row);
           setFormData({
             customer_name: row.customer_name ?? row.name ?? "",
@@ -226,14 +240,181 @@ export default function ConfirmOrdersPage() {
           setErrors({});
           setOpenEdit(true);
         }}
-        onDelete={(row) => {
+        onDelete={(row: Order) => {
           setSelectedRow(row);
           setOpenDelete(true);
         }}
       />
 
-      {/* Add, Edit, Delete Dialogs remain unchanged */}
-      {/* ✅ Your existing dialogs go here */}
+      {/* Add Dialog */}
+      <Dialog open={openAdd} onClose={() => setOpenAdd(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Add New Order</DialogTitle>
+        <DialogContent className="space-y-4">
+          <TextField
+            label="Customer Name"
+            fullWidth
+            value={formData.customer_name}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, customer_name: e.target.value }))
+            }
+            error={!!errors.customer_name}
+            helperText={errors.customer_name}
+          />
+          <TextField
+            label="Total Amount"
+            type="number"
+            fullWidth
+            value={formData.total_amount}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, total_amount: Number(e.target.value) }))
+            }
+            error={!!errors.total_amount}
+            helperText={errors.total_amount}
+          />
+          <TextField
+            label="Payment Status"
+            fullWidth
+            value={formData.payment_status}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, payment_status: e.target.value }))
+            }
+            error={!!errors.payment_status}
+            helperText={errors.payment_status}
+          />
+          <TextField
+            label="Order Status"
+            select
+            fullWidth
+            value={formData.order_status}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, order_status: Number(e.target.value) }))
+            }
+            error={!!errors.order_status}
+            helperText={errors.order_status}
+          >
+            {statuses.map((s) => (
+              <MenuItem key={s.id} value={s.id}>
+                {s.status}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="Pickup Date & Time"
+            type="datetime-local"
+            fullWidth
+            InputLabelProps={{ shrink: true }}
+            value={formData.pickup_date_time}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, pickup_date_time: e.target.value }))
+            }
+            error={!!errors.pickup_date_time}
+            helperText={errors.pickup_date_time}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAdd(false)}>Cancel</Button>
+          <Button onClick={handleAddSubmit} variant="contained">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={openEdit}
+        onClose={() => setOpenEdit(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Edit Order</DialogTitle>
+        <DialogContent className="space-y-4">
+          <TextField
+            label="Customer Name"
+            fullWidth
+            value={formData.customer_name}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, customer_name: e.target.value }))
+            }
+            error={!!errors.customer_name}
+            helperText={errors.customer_name}
+          />
+          <TextField
+            label="Total Amount"
+            type="number"
+            fullWidth
+            value={formData.total_amount}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, total_amount: Number(e.target.value) }))
+            }
+            error={!!errors.total_amount}
+            helperText={errors.total_amount}
+          />
+          <TextField
+            label="Payment Status"
+            fullWidth
+            value={formData.payment_status}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, payment_status: e.target.value }))
+            }
+            error={!!errors.payment_status}
+            helperText={errors.payment_status}
+          />
+          <TextField
+            label="Order Status"
+            select
+            fullWidth
+            value={formData.order_status}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, order_status: Number(e.target.value) }))
+            }
+            error={!!errors.order_status}
+            helperText={errors.order_status}
+          >
+            {statuses.map((s) => (
+              <MenuItem key={s.id} value={s.id}>
+                {s.status}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="Pickup Date & Time"
+            type="datetime-local"
+            fullWidth
+            InputLabelProps={{ shrink: true }}
+            value={formData.pickup_date_time}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, pickup_date_time: e.target.value }))
+            }
+            error={!!errors.pickup_date_time}
+            helperText={errors.pickup_date_time}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEdit(false)}>Cancel</Button>
+          <Button onClick={handleEditSubmit} variant="contained">
+            Update
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <Dialog
+        open={openDelete}
+        onClose={() => setOpenDelete(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Delete Order</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete this order?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDelete(false)}>Cancel</Button>
+          <Button onClick={handleDeleteSubmit} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }
