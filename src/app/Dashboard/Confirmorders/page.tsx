@@ -114,22 +114,22 @@ export default function ConfirmOrdersPage() {
     }
   }, []);
 
-  const fetchStatuses = useCallback(async () => {
-    try {
-      const response = await axios.get(`${BASE_URL}order-statuses/`, {
-        headers: getAuthHeaders(),
-      });
-      setStatuses(response.data || []);
-    } catch (error) {
-      console.error("Error fetching order statuses:", error);
-      setStatuses([]);
-    }
-  }, []);
+  // const fetchStatuses = useCallback(async () => {
+  //   try {
+  //     const response = await axios.get(`${BASE_URL}order-statuses/`, {
+  //       headers: getAuthHeaders(),
+  //     });
+  //     setStatuses(response.data || []);
+  //   } catch (error) {
+  //     console.error("Error fetching order statuses:", error);
+  //     setStatuses([]);
+  //   }
+  // }, []);
 
   useEffect(() => {
     fetchOrders();
-    fetchStatuses();
-  }, [fetchOrders, fetchStatuses]);
+    
+  }, [fetchOrders]);
 
   // --- Validation ------------------------------------------------------------
   const validateForm = () => {
@@ -177,10 +177,7 @@ export default function ConfirmOrdersPage() {
     try {
       await axios.patch(
         `${BASE_URL}confirmorder/${selectedRow.id}/`,
-        {
-          order_status:
-            formData.order_status === "" ? null : Number(formData.order_status),
-        },
+       
         { headers: getAuthHeaders() }
       );
       setOpenEdit(false);
