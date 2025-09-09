@@ -38,11 +38,11 @@ export default function ServiceDeliveryCodePage() {
   const [selectedRow, setSelectedRow] = useState<ServiceDeliveryCode | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
-  // Reference data
-  const [laundries, setLaundries] = useState<Laundry[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [periods, setPeriods] = useState<ServicePeriod[]>([]);
-  const [priceTypes, setPriceTypes] = useState<PriceType[]>([]);
+  // Reference data (only read, no setters needed)
+  const [laundries] = useState<Laundry[]>([]);
+  const [services] = useState<Service[]>([]);
+  const [periods] = useState<ServicePeriod[]>([]);
+  const [priceTypes] = useState<PriceType[]>([]);
 
   // Form state
   const [formData, setFormData] = useState<ServiceDeliveryCode>({
@@ -67,10 +67,10 @@ export default function ServiceDeliveryCodePage() {
     const temp: Record<string, string> = {};
     let isValid = true;
 
-    const requiredFields = ["laundry", "service", "service_period", "price_type"];
+    const requiredFields: (keyof ServiceDeliveryCode)[] = ["laundry", "service", "service_period", "price_type"];
     requiredFields.forEach((k) => {
-      if (!(formData as any)[k]) {
-        temp[k] = `${k.replaceAll("_", " ")} is required`;
+      if (!formData[k]) {
+        temp[k] = `${String(k).replaceAll("_", " ")} is required`;
         isValid = false;
       }
     });
@@ -84,10 +84,17 @@ export default function ServiceDeliveryCodePage() {
       isValid = false;
     }
 
-    ["min_quantity", "turnaround_time", "service_period_price", "service_price", "pickup_delivery_cost"].forEach((k) => {
-      const val = (formData as any)[k];
-      if (val != null && val < 0) {
-        temp[k] = `${k.replaceAll("_", " ")} must be a number ≥ 0`;
+    const numericFields: (keyof ServiceDeliveryCode)[] = [
+      "min_quantity",
+      "turnaround_time",
+      "service_period_price",
+      "service_price",
+      "pickup_delivery_cost",
+    ];
+    numericFields.forEach((k) => {
+      const val = formData[k];
+      if (typeof val === "number" && val < 10) {
+        temp[k] = `${String(k).replaceAll("_", " ")} must be a number ≥ 10`;
         isValid = false;
       }
     });
@@ -114,24 +121,6 @@ export default function ServiceDeliveryCodePage() {
     }
   };
 
-  // ✅ Fetch reference data
-  // const fetchReferenceData = async (authToken: string) => {
-  //   try {
-  //     const [l, s, p, t] = await Promise.all([
-  //       axios.get<Laundry[]>(`${BASE_URL}laundries/`, { headers: { Authorization: `Bearer ${authToken}` } }),
-  //       axios.get<Service[]>(`${BASE_URL}services/`, { headers: { Authorization: `Bearer ${authToken}` } }),
-  //       axios.get<ServicePeriod[]>(`${BASE_URL}service-periods/`, { headers: { Authorization: `Bearer ${authToken}` } }),
-  //       axios.get<PriceType[]>(`${BASE_URL}price-types/`, { headers: { Authorization: `Bearer ${authToken}` } }),
-  //     ]);
-  //     setLaundries(Array.isArray(l.data) ? l.data : (l.data as any).results || []);
-  //     setServices(Array.isArray(s.data) ? s.data : (s.data as any).results || []);
-  //     setPeriods(Array.isArray(p.data) ? p.data : (p.data as any).results || []);
-  //     setPriceTypes(Array.isArray(t.data) ? t.data : (t.data as any).results || []);
-  //   } catch (err) {
-  //     console.error("Error fetching reference data:", err);
-  //   }
-  // };
-
   // ✅ Fetch on mount
   const didFetch = useRef(false);
   useEffect(() => {
@@ -141,7 +130,6 @@ export default function ServiceDeliveryCodePage() {
     setToken(storedToken);
     if (storedToken) {
       fetchCodes(storedToken);
-      // fetchReferenceData(storedToken);
     }
   }, []);
 
