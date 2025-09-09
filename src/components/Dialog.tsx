@@ -21,6 +21,7 @@ interface CustomDialogProps {
   submitText?: string;
   cancelText?: string;
   confirmMessage?: string; // For confirmation (e.g. delete)
+  disabled?: boolean;
 }
 
 export default function CustomDialog({
