@@ -70,7 +70,7 @@ export default function Sidebar() {
           <CurrencyRupeeIcon fontSize="small" /> Price Type
         </Link>
         <Link href="/Dashboard/Laundary" className={linkClasses("/Dashboard/Laundary")}>
-          <LocalLaundryServiceIcon fontSize="small" /> Laundary
+          <LocalLaundryServiceIcon fontSize="small" /> Laundry
         </Link>
       </nav>
     </aside>
