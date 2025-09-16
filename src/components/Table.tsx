@@ -1,3 +1,4 @@
+// components/Table.tsx
 "use client";
 
 import React, { useMemo, useState } from "react";
@@ -27,17 +28,6 @@ import {
 import { Delete, Edit } from "@mui/icons-material";
 import { formatDate } from "@/utils/date";
 
-/**
- * Strongly-typed, highly-configurable data table that adapts to any page.
- * - No `any` types
- * - Works with arbitrary row shapes via generics
- * - Optional column config for ordering/labels/custom renderers/visibility
- * - Optional row identifier extractor
- * - Built-in helpers for dates/booleans
- * - Optional actions (edit/delete/toggle)
- * - Pagination with controllable page-size options
- */
-
 export type CellRenderer<T> = (
   row: T,
   value: unknown,
@@ -45,51 +35,40 @@ export type CellRenderer<T> = (
 ) => React.ReactNode;
 
 export interface ColumnDef<T> {
-  /** Key in the row (or a virtual key for custom value/getter) */
   key: keyof T | string;
-  /** Column header label (defaults to key transformed) */
   header?: string;
-  /** Compute the value to render for this column */
   value?: (row: T) => unknown;
-  /** Custom renderer for the cell */
   render?: CellRenderer<T>;
-  /** Hide this column */
   hide?: boolean;
-  /** Treat as date; uses provided dateFormat or default formatDate */
   isDate?: boolean;
-  /** Treat as boolean; if onToggleActive provided, it will render a Switch */
   isBoolean?: boolean;
+  /** NEW: per-column MUI sx for header + body cells */
+  sx?: any;
 }
 
 export interface CommonTableProps<T extends object> {
   data: T[];
-
-  // Columns: if omitted, columns are inferred from the first row's keys
   columns?: Array<ColumnDef<T>>;
-
-  // Row identity (for stable keys)
   getRowId?: (row: T, index: number) => React.Key;
 
-  // Built-in actions
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
   onToggleActive?: (row: T, newValue: boolean) => void;
-
-  // Optional row click
   onRowClick?: (row: T) => void;
 
-  // Pagination controls
-  rowsPerPageOptions?: number[]; // default [5, 10, 25, 50]
-  initialRowsPerPage?: number;   // default 10
+  rowsPerPageOptions?: number[];
+  initialRowsPerPage?: number;
 
-  // Misc
-  emptyMessage?: string; // default "No records found."
-  titleCaseHeaders?: boolean; // default true
-  dateFormat?: (value: unknown) => React.ReactNode; // default uses formatDate
+  emptyMessage?: string;
+  titleCaseHeaders?: boolean;
+  dateFormat?: (value: unknown) => React.ReactNode;
+
+  /** Makes columns expand to fit content (adds horizontal scroll if needed) */
+  fitColumnsToContent?: boolean; // default false
 }
 
-// Helper type for the SubOrder dialog content
- type SubOrder = Record<string, unknown>;
+// For sub_order dialog content
+type SubOrder = Record<string, unknown>;
 
 export default function CommonTable<T extends object>({
   data,
@@ -104,12 +83,11 @@ export default function CommonTable<T extends object>({
   emptyMessage = "No records found.",
   titleCaseHeaders = true,
   dateFormat,
+  fitColumnsToContent = false,
 }: CommonTableProps<T>) {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
-  const [selectedSubOrder, setSelectedSubOrder] = useState<SubOrder | null>(
-    null
-  );
+  const [selectedSubOrder, setSelectedSubOrder] = useState<SubOrder | null>(null);
 
   const inferredColumns = useMemo(() => {
     if (!data || data.length === 0) return [] as Array<keyof T>;
@@ -118,14 +96,12 @@ export default function CommonTable<T extends object>({
 
   const activeColumns: Array<ColumnDef<T>> = useMemo(() => {
     if (columns && columns.length) return columns.filter((c) => !c.hide);
-    // fallback: infer columns directly from data
     return inferredColumns.map((k) => ({ key: k })) as Array<ColumnDef<T>>;
   }, [columns, inferredColumns]);
 
   const hasActions = Boolean(onEdit || onDelete);
 
   const handleChangePage = (_: unknown, value: number) => setPage(value);
-
   const handleChangeRowsPerPage = (event: SelectChangeEvent) => {
     const next = parseInt(String(event.target.value), 10);
     setRowsPerPage(Number.isNaN(next) ? initialRowsPerPage : next);
@@ -157,7 +133,7 @@ export default function CommonTable<T extends object>({
       col.key as keyof T as unknown as string
     ];
 
-    // Special-case: sub_orders array as clickable chips (convention)
+    // Sub-orders -> chips with dialog
     if (String(col.key) === "sub_orders" && Array.isArray(rawValue)) {
       const arr = rawValue as unknown[];
       return (
@@ -182,13 +158,11 @@ export default function CommonTable<T extends object>({
       );
     }
 
-    // Date rendering
     if (col.isDate) {
       const fmt = dateFormat ?? defaultDateRender;
       return fmt(rawValue);
     }
 
-    // Boolean rendering (optionally toggleable)
     if (col.isBoolean && typeof rawValue === "boolean") {
       if (onToggleActive) {
         return (
@@ -206,12 +180,14 @@ export default function CommonTable<T extends object>({
       );
     }
 
-    // Custom renderer override
     if (col.render) return col.render(row, rawValue, { columnKey: col.key, rowIndex });
 
-    // Objects -> stringify (safe)
     if (rawValue !== null && typeof rawValue === "object") {
-      try { return JSON.stringify(rawValue); } catch { return "[object]"; }
+      try {
+        return JSON.stringify(rawValue);
+      } catch {
+        return "[object]";
+      }
     }
 
     return (rawValue as React.ReactNode) ?? "";
@@ -221,19 +197,34 @@ export default function CommonTable<T extends object>({
     return <Typography variant="body2">{emptyMessage}</Typography>;
   }
 
+  // Global nowrap + horizontal scroll when fitColumnsToContent = true
+  const cellSx = fitColumnsToContent ? { whiteSpace: "nowrap" as const } : undefined;
+  const containerSx = fitColumnsToContent ? { overflowX: "auto" } : undefined;
+  const tableSx = fitColumnsToContent
+    ? { width: "max-content", minWidth: "max-content", tableLayout: "auto" as const }
+    : undefined;
+
   return (
     <>
-      <Paper className="shadow-lg rounded-lg p-3">
-        <TableContainer>
-          <MuiTable size="small">
+      <Paper elevation={0} square sx={{ p: 0, boxShadow: "none", bgcolor: "transparent" }}>
+        <TableContainer sx={containerSx}>
+          <MuiTable
+            size="small"
+            sx={tableSx}
+          >
             <TableHead>
               <TableRow>
                 {activeColumns.map((col) => (
-                  <TableCell key={String(col.key)}>
+                  <TableCell
+                    key={String(col.key)}
+                    sx={{ ...(cellSx || {}), ...(col.sx || {}) }}
+                  >
                     {col.header ?? defaultHeader(col.key)}
                   </TableCell>
                 ))}
-                {hasActions && <TableCell>ACTIONS</TableCell>}
+                {hasActions && (
+                  <TableCell sx={{ ...(cellSx || {}) }}>ACTIONS</TableCell>
+                )}
               </TableRow>
             </TableHead>
 
@@ -248,11 +239,16 @@ export default function CommonTable<T extends object>({
                     style={{ cursor: onRowClick ? "pointer" : undefined }}
                   >
                     {activeColumns.map((col) => (
-                      <TableCell key={String(col.key)}>{renderCell(col, row, startIndex + idx)}</TableCell>
+                      <TableCell
+                        key={String(col.key)}
+                        sx={{ ...(cellSx || {}), ...(col.sx || {}) }}
+                      >
+                        {renderCell(col, row, startIndex + idx)}
+                      </TableCell>
                     ))}
 
                     {hasActions && (
-                      <TableCell>
+                      <TableCell sx={{ ...(cellSx || {}) }}>
                         <Stack direction="row" spacing={1}>
                           {onEdit && (
                             <Tooltip title="Edit">
@@ -329,17 +325,8 @@ export default function CommonTable<T extends object>({
   );
 }
 
-/**
- * Helper: create a typed table component once and reuse without repeatedly
- * specifying generics at call sites.
- *
- * Example:
- *   const PickupTable = asTableOf<Pickup>();
- *   <PickupTable data={pickups} onEdit={(row) => ...} />
- */
 export const asTableOf = <T extends object>() => {
   const TypedTable = (props: CommonTableProps<T>) => <CommonTable<T> {...props} />;
   TypedTable.displayName = "TypedCommonTable";
   return TypedTable;
 };
-

@@ -141,10 +141,10 @@ export default function PriceTypePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Price Types</h1>
+      <div className="flex justify-end">
+        {/* <h1 className="text-xl font-semibold">Price Types</h1> */}
         <Button
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="bg-blue-600 hover:bg-blue-700 text-white mt-3 ml-3"
           size="lg"
           onClick={() => {
             setFormData({ price_type_name: "" });

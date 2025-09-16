@@ -73,6 +73,7 @@ export default function ServicesPage() {
         : response.data.results || [];
 
       setServices(data);
+      console.log("services data", data)
     } catch (error) {
       console.error("Error fetching services:", error);
       setServices([]);
@@ -135,10 +136,10 @@ export default function ServicesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Services</h1>
+      <div className="flex justify-end">
+        {/* <h1 className="text-xl font-semibold">Services</h1> */}
         <Button
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="bg-blue-600 hover:bg-blue-700 text-white mt-3"
           size="lg"
           onClick={() => {
             setFormData({ service_code: "", service_name: "", service_description: "" });
@@ -152,7 +153,16 @@ export default function ServicesPage() {
 
       {/* ✅ Table with Edit/Delete actions */}
       <CommonTable
-        data={services}
+        // data={services}
+        data={services.map(({ id,
+          service_code,
+          service_name,
+          service_description }) => ({
+            id,
+            service_code,
+            service_name,
+            service_description
+          }))}
         onEdit={(row: Service) => {
           setSelectedRow(row);
           setFormData({

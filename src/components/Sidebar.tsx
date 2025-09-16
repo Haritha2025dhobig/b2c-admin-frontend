@@ -43,9 +43,9 @@ export default function Sidebar() {
           <ListAltIcon fontSize="small" /> ServicePeriod
         </Link>
 
-        <Link href="/Dashboard/Pincode" className={linkClasses("/Dashboard/Pincode")}>
+        {/* <Link href="/Dashboard/Pincode" className={linkClasses("/Dashboard/Pincode")}>
           <PinDropIcon fontSize="small" /> ServicePincode
-        </Link>
+        </Link> */}
 
         <Link href="/Dashboard/address" className={linkClasses("/Dashboard/address")}>
           <LocationOnIcon fontSize="small" /> User-Address
@@ -70,7 +70,7 @@ export default function Sidebar() {
           <CurrencyRupeeIcon fontSize="small" /> Price Type
         </Link>
         <Link href="/Dashboard/Laundary" className={linkClasses("/Dashboard/Laundary")}>
-          <LocalLaundryServiceIcon fontSize="small" /> Laundary
+          <LocalLaundryServiceIcon fontSize="small" /> Laundry
         </Link>
       </nav>
     </aside>

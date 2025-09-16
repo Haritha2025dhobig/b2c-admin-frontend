@@ -117,10 +117,10 @@ export default function PickupPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Pickups</h1>
+      <div className="flex  justify-end">
+        {/* <h1 className="text-xl font-semibold">Pickups</h1> */}
         <Button
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="bg-blue-600 hover:bg-blue-700 text-white mt-3 ml-3"
           size="lg"
           onClick={() => {
             setFormData({ pickup_code: "", pickup_name: "" });

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import CommonTable from "@/components/Table";
 import CustomDialog from "@/components/Dialog";
 import { TextField } from "@mui/material";
@@ -21,17 +21,16 @@ interface Address {
   country: string;
   pin_code: string;
 }
-
 type FormData = Omit<Address, "id">;
 
 export default function AddressesPage() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorText, setErrorText] = useState<string>("");
 
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
-
   const [selectedRow, setSelectedRow] = useState<Address | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
@@ -58,104 +57,25 @@ export default function AddressesPage() {
     pin_code: "",
   });
 
-  const [token, setToken] = useState<string | null>(null);
+  // ---------- helpers ----------
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("access_token"); // <-- make sure this is the key you use elsewhere
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
-  useEffect(() => {
-    const savedToken = localStorage.getItem("token");
-    if (savedToken) {
-      setToken(savedToken);
-    }
-  }, []);
-
-  // ✅ Validation
   const validate = () => {
-    const tempErrors: FormData = { ...errors };
-    let isValid = true;
-
-    (Object.keys(formData) as (keyof FormData)[]).forEach((key) => {
-      if (!formData[key]) {
-        tempErrors[key] = "Required";
-        isValid = false;
+    const temp: FormData = { ...errors };
+    let ok = true;
+    (Object.keys(formData) as (keyof FormData)[]).forEach((k) => {
+      if (!formData[k]) {
+        temp[k] = "Required";
+        ok = false;
       } else {
-        tempErrors[key] = "";
+        temp[k] = "";
       }
     });
-
-    setErrors(tempErrors);
-    return isValid;
-  };
-
-  // ✅ Fetch Addresses
-  const fetchAddresses = useCallback(async () => {
-    if (!token) return;
-    try {
-      const response = await axios.get(`${BASE_URL}addresses/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data: Address[] = Array.isArray(response.data)
-        ? response.data
-        : response.data.results || [];
-      setAddresses(data);
-    } catch (error) {
-      console.error("Error fetching addresses:", error);
-      setAddresses([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
-
-  const didFetch = useRef(false);
-  useEffect(() => {
-    if (didFetch.current) return;
-    didFetch.current = true;
-    fetchAddresses();
-  }, [fetchAddresses]);
-
-  // ✅ Add Address
-  const handleAddSubmit = async () => {
-    if (!validate() || !token) return;
-
-    try {
-      await axios.post(`${BASE_URL}addresses/`, formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setOpenAdd(false);
-      resetForm();
-      fetchAddresses();
-    } catch (error) {
-      console.error("Error adding address:", error);
-    }
-  };
-
-  // ✅ Edit Address
-  const handleEditSubmit = async () => {
-    if (!selectedRow || !validate() || !token) return;
-
-    try {
-      await axios.patch(`${BASE_URL}addresses/${selectedRow.id}/`, formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setOpenEdit(false);
-      resetErrors();
-      fetchAddresses();
-    } catch (error) {
-      console.error("Error editing address:", error);
-    }
-  };
-
-  // ✅ Delete Address
-  const handleDeleteSubmit = async () => {
-    if (!selectedRow || !token) return;
-
-    try {
-      await axios.delete(`${BASE_URL}addresses/${selectedRow.id}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setOpenDelete(false);
-      fetchAddresses();
-    } catch (error) {
-      console.error("Error deleting address:", error);
-    }
+    setErrors(temp);
+    return ok;
   };
 
   const resetForm = () => {
@@ -170,10 +90,6 @@ export default function AddressesPage() {
       country: "",
       pin_code: "",
     });
-    resetErrors();
-  };
-
-  const resetErrors = () => {
     setErrors({
       lat: "",
       long: "",
@@ -187,15 +103,123 @@ export default function AddressesPage() {
     });
   };
 
+  // ---------- fetch (robust) ----------
+  const fetchAddresses = useCallback(async () => {
+    setLoading(true);
+    setErrorText("");
+
+    const headers = getAuthHeaders();
+    const endpoints = ["addresses/", "user-address/"]; // try both; first that works wins
+
+    try {
+      for (const path of endpoints) {
+        try {
+          const res = await axios.get(`${BASE_URL}${path}`, { headers });
+          const data: Address[] = Array.isArray(res.data)
+            ? res.data
+            : res.data?.results || [];
+
+          if (Array.isArray(data)) {
+            setAddresses(data);
+            setLoading(false);
+            return; // success
+          }
+        } catch (err) {
+          // continue to next endpoint
+        }
+      }
+      // if both failed:
+      setAddresses([]);
+      setErrorText("Couldn’t load addresses. Check your API path or auth.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAddresses();
+  }, [fetchAddresses]);
+
+  // ---------- CRUD ----------
+  const handleAddSubmit = async () => {
+    if (!validate()) return;
+    try {
+      await axios.post(`${BASE_URL}addresses/`, formData, { headers: getAuthHeaders() });
+      setOpenAdd(false);
+      resetForm();
+      fetchAddresses();
+    } catch (error) {
+      // fallback to user-address/ if needed
+      try {
+        await axios.post(`${BASE_URL}user-address/`, formData, { headers: getAuthHeaders() });
+        setOpenAdd(false);
+        resetForm();
+        fetchAddresses();
+      } catch (e) {
+        console.error("Error adding address:", e);
+        setErrorText("Failed to add address.");
+      }
+    }
+  };
+
+  const handleEditSubmit = async () => {
+    if (!selectedRow || !validate()) return;
+    const id = selectedRow.id;
+    try {
+      await axios.patch(`${BASE_URL}addresses/${id}/`, formData, { headers: getAuthHeaders() });
+      setOpenEdit(false);
+      fetchAddresses();
+    } catch {
+      try {
+        await axios.patch(`${BASE_URL}user-address/${id}/`, formData, { headers: getAuthHeaders() });
+        setOpenEdit(false);
+        fetchAddresses();
+      } catch (e) {
+        console.error("Error editing address:", e);
+        setErrorText("Failed to update address.");
+      }
+    }
+  };
+
+  const handleDeleteSubmit = async () => {
+    if (!selectedRow) return;
+    const id = selectedRow.id;
+    try {
+      await axios.delete(`${BASE_URL}addresses/${id}/`, { headers: getAuthHeaders() });
+      setOpenDelete(false);
+      fetchAddresses();
+    } catch {
+      try {
+        await axios.delete(`${BASE_URL}user-address/${id}/`, { headers: getAuthHeaders() });
+        setOpenDelete(false);
+        fetchAddresses();
+      } catch (e) {
+        console.error("Error deleting address:", e);
+        setErrorText("Failed to delete address.");
+      }
+    }
+  };
+
+  // ---------- render ----------
   if (loading) return <p>Loading...</p>;
+
+  if (errorText) {
+    return (
+      <div className="space-y-3">
+        <h1 className="text-xl font-semibold">Addresses</h1>
+        <p className="text-sm text-red-600">{errorText}</p>
+        <Button variant="outline" onClick={fetchAddresses}>Retry</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Addresses</h1>
+      <div className="flex  justify-end">
+        {/* <h1 className="text-xl font-semibold">Addresses</h1> */}
         <Button
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="bg-blue-600 hover:bg-blue-700 text-white mt-3 ml-3"
           size="lg"
           onClick={() => {
             resetForm();
@@ -211,14 +235,27 @@ export default function AddressesPage() {
         data={addresses}
         onEdit={(row: Address) => {
           setSelectedRow(row);
-          setFormData({ ...row });
-          resetErrors();
+          const { id, ...rest } = row;
+          setFormData(rest);
           setOpenEdit(true);
         }}
         onDelete={(row: Address) => {
           setSelectedRow(row);
           setOpenDelete(true);
         }}
+        columns={[
+          { key: "id" },
+          { key: "lat" },
+          { key: "long" },
+          { key: "house_no", header: "HOUSE NO" },
+          { key: "street" },
+          { key: "area" },
+          { key: "city" },
+          { key: "state" },
+          { key: "country" },
+          { key: "pin_code", header: "PIN CODE" },
+        ]}
+        fitColumnsToContent
       />
 
       {/* Add Dialog */}
@@ -235,9 +272,7 @@ export default function AddressesPage() {
               key={key}
               label={key.replace("_", " ").toUpperCase()}
               value={formData[key]}
-              onChange={(e) =>
-                setFormData({ ...formData, [key]: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
               error={!!errors[key]}
               helperText={errors[key]}
               fullWidth
@@ -260,9 +295,7 @@ export default function AddressesPage() {
               key={key}
               label={key.replace("_", " ").toUpperCase()}
               value={formData[key]}
-              onChange={(e) =>
-                setFormData({ ...formData, [key]: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
               error={!!errors[key]}
               helperText={errors[key]}
               fullWidth
