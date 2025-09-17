@@ -1107,7 +1107,14 @@ function ServiceDeliveryCodesPageInner() {
           { key: "turnaround_time", header: "TAT (HRS)" },
           { key: "service_period_price", header: "PERIOD PRICE" },
           { key: "service_price", header: "SERVICE PRICE" },
-          { key: "pickup_delivery_cost", header: "PICKUP/DELIVERY" },
+              {
+      key: "pickup_delivery_cost",
+      header: "PICKUP/DELIVERY COST",
+      value: (row) =>
+        row.pickup_delivery_cost
+          ? `${row.pickup_delivery_cost} /km`
+          : "",   // empty if not set
+    },
         ]}
         onEdit={handleEditOpen}
         onDelete={(row) => {
