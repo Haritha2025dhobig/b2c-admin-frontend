@@ -169,7 +169,13 @@ export default function ServicePeriodPage() {
     }
   };
 
-  if (loading) return <p>Loading...</p>;
+    if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-xl font-bold">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -27,6 +27,7 @@ import {
 } from "@mui/material";
 import { Delete, Edit } from "@mui/icons-material";
 import { formatDate } from "@/utils/date";
+import { SxProps, Theme } from "@mui/material/styles";
 
 export type CellRenderer<T> = (
   row: T,
@@ -43,7 +44,7 @@ export interface ColumnDef<T> {
   isDate?: boolean;
   isBoolean?: boolean;
   /** NEW: per-column MUI sx for header + body cells */
-  sx?: any;
+  sx?: SxProps<Theme>;
 }
 
 export interface CommonTableProps<T extends object> {
